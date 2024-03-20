@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer-array name="sample_rates">
+        <item>44100</item>
+        <item>48000</item>
+    </integer-array>
+</resources>
