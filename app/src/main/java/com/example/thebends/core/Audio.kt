@@ -10,6 +10,8 @@ import android.media.MediaRecorder
 import androidx.core.app.ActivityCompat
 
 import com.example.thebends.R
+import kotlin.math.ln
+import kotlin.math.log
 import kotlin.math.max
 import kotlin.math.sqrt
 
@@ -17,6 +19,7 @@ public class Audio : Runnable {
     var numberPolyNotes = IntArray(6)
 
     private val bufferSize = 2048 * 2 // буфер audioRecoder
+    private val samples = 8192
     private val analysisStep = 2048 // размер шага окна
 
     private var sampleRate : Int = 0 // Частота дискретизации
@@ -26,6 +29,12 @@ public class Audio : Runnable {
     private var running = false
     private val context: Context? = null
     private var audioRecord: AudioRecord? = null
+
+    private val amps: DoubleArray? = null
+    private val dx: DoubleArray? = null
+
+    private final val maxFreq : Double = 2100.0
+    private var maxLevel : Double = 0.0
 
     public fun getSampleRate() = sampleRate
     public fun getSignalRMS() = signalRMS
@@ -139,9 +148,17 @@ public class Audio : Runnable {
 
             signalRMS = sqrt(sum / analysisStep).toFloat()
 
-            /**
-             * TODO: Здесь дальше должна пойти математика, погуглить формулы
-             */
+            amps!![0] = 0.0
+            var max : Int = 0
+            val maxF : Int = ((maxFreq * samples / sampleRate).toInt())
+
+            for (i in 1..maxF) {
+                dx!![i] = amps[i] - amps[i-1]
+                if (amps[i] > amps[max]) max = i
+            }
+            maxLevel = (20.0 * ln(amps[max])/ln(10.0))
+
+
         }
     }
 }
