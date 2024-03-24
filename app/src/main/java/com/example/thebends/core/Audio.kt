@@ -11,15 +11,14 @@ import androidx.core.app.ActivityCompat
 
 import com.example.thebends.R
 import kotlin.math.ln
-import kotlin.math.log
 import kotlin.math.max
 import kotlin.math.sqrt
 
-public class Audio : Runnable {
+public class Audio (context: Context): Runnable {
     var numberPolyNotes = IntArray(6)
 
     private val bufferSize = 2048 * 2 // буфер audioRecoder
-    private val samples = 8192
+    private val samples = 8192 // Размер БПФ
     private val analysisStep = 2048 // размер шага окна
 
     private var sampleRate : Int = 0 // Частота дискретизации
@@ -27,17 +26,34 @@ public class Audio : Runnable {
 
     private var thread: Thread? = null
     private var running = false
-    private val context: Context? = null
-    private var audioRecord: AudioRecord? = null
+    private var context: Context
+    private lateinit var audioRecord: AudioRecord
 
-    private val amps: DoubleArray? = null
-    private val dx: DoubleArray? = null
+    private var xReal: DoubleArray
+    private var xImage: DoubleArray
+    private var amps: DoubleArray
+    private var dx: DoubleArray
 
     private final val maxFreq : Double = 2100.0
     private var maxLevel : Double = 0.0
+    private var buff: DoubleArray
 
     public fun getSampleRate() = sampleRate
     public fun getSignalRMS() = signalRMS
+
+    private var fft: FFT
+
+    init {
+        this.context = context
+        buff = DoubleArray(samples)
+        xReal = DoubleArray(samples)
+        xImage = DoubleArray(samples)
+        amps = DoubleArray(samples/2)
+        dx = DoubleArray(samples/2)
+
+        fft = FFT(samples)
+
+    }
 
     fun start() {
         if (running) return
@@ -51,7 +67,7 @@ public class Audio : Runnable {
     }
 
     private fun processAudio() {
-        val resources : Resources = context!!.resources;
+        val resources : Resources = context.resources;
         // Частота дискретизации
         val sampleRates : IntArray = resources.getIntArray(R.array.sample_rates)
 
@@ -75,7 +91,7 @@ public class Audio : Runnable {
                 return
             }
 
-            if (context?.let { it1 ->
+            if (context.let { it1 ->
                     ActivityCompat.checkSelfPermission(
                         it1,
                         Manifest.permission.RECORD_AUDIO
