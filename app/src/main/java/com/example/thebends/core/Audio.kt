@@ -29,7 +29,7 @@ public class Audio (context: Context): Runnable {
     private var sampleRate : Int = 0 // Частота дискретизации
     private var signalRMS = 0f // Среднее квадратичное сигнала
 
-    private var thread: Thread? = null
+    private lateinit var thread: Thread
     private var running = false
     private var context: Context
     private lateinit var audioRecord: AudioRecord
@@ -47,8 +47,10 @@ public class Audio (context: Context): Runnable {
     private var maxLevel : Double = 0.0
     private var buff: DoubleArray
 
-    public fun getSampleRate() = sampleRate
-    public fun getSignalRMS() = signalRMS
+    fun getSampleRate() = sampleRate
+    fun getSignalRMS() = signalRMS
+    fun getPolyNotes() = polyNotes
+    fun getPolyCents() = polyCents
 
     private var fft: FFT
     private val polyFilter: MutableList<Filter> = ArrayList()
@@ -73,7 +75,18 @@ public class Audio (context: Context): Runnable {
         if (running) return
         running = true
         thread = Thread("Audio")
-        thread!!.start()
+        thread.start()
+    }
+
+    fun stop() {
+        if (!running)
+            return
+
+        running = false
+        val t: Thread = thread
+
+        while (t.isAlive)
+            Thread.yield()
     }
 
     override fun run() {
@@ -101,7 +114,6 @@ public class Audio (context: Context): Runnable {
 
             // выходим если поймали ошибку
             if (size == AudioRecord.ERROR) {
-                thread = null
                 return
             }
 
@@ -130,10 +142,10 @@ public class Audio (context: Context): Runnable {
             )
 
             // Проверяем состояние
-            state = audioRecord!!.state
+            state = audioRecord.state
 
             if (state != AudioRecord.STATE_INITIALIZED) {
-                audioRecord!!.release()
+                audioRecord.release()
                 return@forEach
             }
 
@@ -143,34 +155,31 @@ public class Audio (context: Context): Runnable {
         }
 
         if (size == AudioRecord.ERROR_BAD_VALUE) {
-            thread = null
             return
         }
 
         if (state != AudioRecord.STATE_INITIALIZED) {
-            audioRecord!!.release()
-            thread = null
+            audioRecord.release()
             return
         }
 
         // создаём буффер для вводимых данных
 
         // Create buffer for input data
-        var data = ShortArray(analysisStep)
-        var dataDecimate = DoubleArray(analysisStep)
+        val data = ShortArray(analysisStep)
+        val dataDecimate = DoubleArray(analysisStep)
 
         // Начинаем запись
         audioRecord.startRecording()
 
-        while (thread != null) {
+        while (true) {
             size = audioRecord.read(data, 0, analysisStep)
             if (size == 0) {
-                thread = null;
                 break
             }
 
             var sum : Double = 0.0
-            for (i in 0..<analysisStep) {
+            for (i in 0 until analysisStep) {
                 dataDecimate[i] = data[i] / 32768.0
                 val v: Double = data[i] / 32768.0
                 sum += v * v
@@ -190,7 +199,7 @@ public class Audio (context: Context): Runnable {
             var max : Int = 0
             val maxF : Int = ((maxFreq * samples / sampleRate).toInt())
 
-            for (i in 1..<maxF) {
+            for (i in 1 until  maxF) {
                 dx[i] = amps[i] - amps[i-1]
                 if (amps[i] > amps[max]) max = i
             }
@@ -198,7 +207,7 @@ public class Audio (context: Context): Runnable {
 
             // Пока сделаем Полифонический режим, дальше посмотрим нужен ли хроматический
             var countPolyNotes = 0
-            for (i in 0..<6 step 1) {
+            for (i in 0 until  6 step 1) {
                 var left: Int = (round(reference * 2.0.pow((numberPolyNotes[i] - 0.5) / 12.0) *
                         samples / sampleRate) - 1).toInt()
                 var right: Int = (round(reference * 2.0.pow((numberPolyNotes[i] - 0.5) / 12.0) *
@@ -208,7 +217,7 @@ public class Audio (context: Context): Runnable {
                 if (right > (samples/2 - 1)) right = samples/2 - 1
                 var maxBin: Int = 0
 
-                for (j in left..<right step 1) {
+                for (j in left until right step 1) {
                     if (((dx[j] > 0) && (dx[j+1] < 0.0)) ||
                         (dx[j] >= 0.0) && (dx[j+1] < 0.0) ||
                         (dx[j] > 0.0) && (dx[j+1]) <= 0.0) {
