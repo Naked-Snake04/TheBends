@@ -59,6 +59,8 @@ public class Audio(context: Context) : Runnable {
     fun getSignalRMS() = signalRMS
     fun getPolyNotes() = polyNotes
     fun getPolyCents() = polyCents
+    fun getChromaticCent() = chromaticCent
+    fun getChromaticFreq() = chromaticFreq
 
     private var fft: FFT
     private lateinit var filterCent: Filter

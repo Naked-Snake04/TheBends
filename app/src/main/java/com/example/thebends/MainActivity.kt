@@ -11,7 +11,7 @@ import com.example.thebends.databinding.ActivityMainBinding
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-
+    private lateinit var tuner: Tuner
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -28,9 +28,11 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
+        tuner = Tuner(this, binding)
+
 //             TODO:
 //              1)Сделать классы
-//                а)Audio, в котором будут записываться звуки
+//                ~~а)Audio, в котором будут записываться звуки~~
 //                б)Tuner, в котором будет высчитываться частота звука и определяться нота
 //              2)Расчёты вычисления запихнуть в freq в activity_main
 //              3)Запихнуть алгоритм по обработке бэндов в Tuner

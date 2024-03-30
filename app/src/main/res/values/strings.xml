@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">TheBends</string>
+    <string name="freq">Freq:</string>
+    <string name="cent">Cent:</string>
 </resources>

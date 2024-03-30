@@ -2,9 +2,9 @@ package com.example.thebends
 
 import android.content.Context
 import com.example.thebends.core.Audio
-import java.util.Arrays
+import com.example.thebends.databinding.ActivityMainBinding
 
-class Tuner (context: Context) : Runnable {
+class Tuner (context: Context, private val binding: ActivityMainBinding) : Runnable {
     private val second: Long = 1000000000L
     private val updateRate: Float = 30.0F
     private val updateInterval: Float = second / updateRate
@@ -18,6 +18,7 @@ class Tuner (context: Context) : Runnable {
     private var polyCents = FloatArray(6)
 
     private var sampleRate: Int = 0
+    private var chromaticFreq: Float = 0F
 
     init {
         audio = Audio(context)
@@ -74,7 +75,11 @@ class Tuner (context: Context) : Runnable {
 
             sampleRate = audio.getSampleRate()
 
+            chromaticFreq = audio.getChromaticFreq()
+            val chromaticCent: Float = audio.getChromaticCent()
 
+            binding.cent.text = chromaticFreq.toString()
+            binding.cent.text = chromaticCent.toString()
         }
     }
 
