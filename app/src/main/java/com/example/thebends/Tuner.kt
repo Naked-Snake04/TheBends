@@ -3,6 +3,10 @@ package com.example.thebends
 import android.content.Context
 import com.example.thebends.core.Audio
 import com.example.thebends.databinding.ActivityMainBinding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class Tuner (context: Context, private val binding: ActivityMainBinding) : Runnable {
     private val second: Long = 1000000000L
@@ -25,6 +29,10 @@ class Tuner (context: Context, private val binding: ActivityMainBinding) : Runna
         running = false
     }
 
+    fun getAudio(): Audio {
+        return audio
+    }
+
     fun start() {
         if (running) {
             return
@@ -45,6 +53,8 @@ class Tuner (context: Context, private val binding: ActivityMainBinding) : Runna
         while (t.isAlive)
             Thread.yield()
     }
+
+
     override fun run() {
         var upd: Int = 0
         var updl: Int = 0
@@ -77,9 +87,16 @@ class Tuner (context: Context, private val binding: ActivityMainBinding) : Runna
 
             chromaticFreq = audio.getChromaticFreq()
             val chromaticCent: Float = audio.getChromaticCent()
+            GlobalScope.launch(Dispatchers.IO) {
+                // Perform background work
 
-            binding.cent.text = chromaticFreq.toString()
-            binding.cent.text = chromaticCent.toString()
+                // Switch to the main thread to update the UI
+                withContext(Dispatchers.Main) {
+                    binding.cent.text = chromaticFreq.toString()
+                    binding.cent.text = chromaticCent.toString()
+                }
+            }
+
         }
     }
 

@@ -1,11 +1,14 @@
 package com.example.thebends
 
 import android.Manifest
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.preference.PreferenceManager
+import com.example.thebends.core.Audio
 import com.example.thebends.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -37,5 +40,30 @@ class MainActivity : AppCompatActivity() {
         }
 
         tuner = Tuner(this, binding)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        getPreferences()
+        tuner.start()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        tuner.stop()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        System.runFinalization()
+    }
+
+    private fun getPreferences() {
+        val preferences: SharedPreferences = PreferenceManager
+            .getDefaultSharedPreferences(this);
+        var audio: Audio = tuner.getAudio()
+        if (audio != null) {
+            audio
+        }
     }
 }
