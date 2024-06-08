@@ -17,6 +17,7 @@ public class FFT (n: Int) {
     companion object {
         init {
             System.loadLibrary("fft-lib")
+//            System.loadLibrary("fft-lib")
         }
     }
     init {
