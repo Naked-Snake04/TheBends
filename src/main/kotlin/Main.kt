@@ -1,7 +1,4 @@
-import javax.sound.sampled.*
-import kotlin.math.*
 import java.awt.*
-import java.io.File
 import javax.swing.*
 import kotlin.concurrent.thread
 
@@ -24,7 +21,13 @@ fun main() {
             val file = fileChooser.selectedFile
             label.text = "Обрабатывается: ${file.name}"
             thread {
-                AudioUtils.analyzeAudioFile(file, label)
+                try {
+                    AudioUtils.analyzeAudioFile(file, label)
+                } catch (e: Exception) {
+                    SwingUtilities.invokeLater {
+                        label.text = "Ошибка при обработке файла: ${e.message}"
+                    }
+                }
             }
         }
     }
