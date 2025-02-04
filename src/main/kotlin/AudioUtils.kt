@@ -15,6 +15,7 @@ class AudioUtils {
                 val format = audioInputStream.format
                 val sampleRate = format.sampleRate.toInt()
                 val dataLineInfo = DataLine.Info(SourceDataLine::class.java, format)
+                val bytesPerSample = format.frameSize / format.channels
 
                 if (!AudioSystem.isLineSupported(dataLineInfo)) {
                     SwingUtilities.invokeLater {
@@ -34,7 +35,29 @@ class AudioUtils {
                 while (true) {
                     val bytesRead = audioInputStream.read(buffer, 0, chunkSize)
                     if (bytesRead == -1) break
+                    sourceLine.write(buffer, 0, buffer.size)
+                    val audioData = when (bytesPerSample) {
+                        1 -> buffer.map { it.toDouble() / 128.0 } // 8-битный звук
+                        2 -> {
+                            val shorts = ShortArray(bytesRead /2)
+                            for (i in shorts.indices) {
+                                shorts[i] = ((buffer[2 * i + 1].toInt() shl 8) or (buffer[2 * i].toInt() and 0xFF)).toShort()
+                            }
+                            shorts.map { it.toDouble() / 32768.0 } // 16-битный звук
+                        }
+                        else -> throw UnsupportedOperationException("Неподдерживаемый формат аудио.")
+                    }
 
+                    val frequency = detectFrequency(audioData, sampleRate)
+                    SwingUtilities.invokeLater {
+                        label.text = if (frequency != null) {
+                            "Обнаружена частота: %.2f Гц.".format(frequency)
+                        } else {
+                            "Не удалось определить частоту."
+                        }
+                    }
+
+/*
                     // Убедимся, что количество байтов кратно размеру фрейма
                     val alignedBytes = bytesRead - (bytesRead % format.frameSize)
                     if (alignedBytes > 0) {
@@ -52,7 +75,7 @@ class AudioUtils {
                             }
                         }
                     }
-
+*/
                     Thread.sleep(100) // Ждать 1/10 секунды для следующего анализа
                 }
 
@@ -73,16 +96,18 @@ class AudioUtils {
 
         private fun detectFrequency(audioData: List<Double>, sampleRate: Int): Double? {
             val fftSize = audioData.size
-            val windowedData = audioData.mapIndexed { i, value ->
-                value * 0.5 * (1 - cos(2.0 * Math.PI * i / (fftSize - 1))) // Применение окна Хэмминга
-            }.toDoubleArray()
+            if (fftSize < 2) return null
+
+            // Применение окна Хэмминга
+            val windowedData = DoubleArray(fftSize)
+            for (i in windowedData.indices) {
+                windowedData[i] = audioData[i] * (0.54 - 0.46 * cos(2.0 * Math.PI * i / (fftSize - 1)))
+            }
 
             // Выполнение FFT
             val fft = DoubleFFT_1D(fftSize.toLong())
             val fftArray = DoubleArray(fftSize * 2) // Реальная и мнимая части
-            for (i in windowedData.indices) {
-                fftArray[i] = windowedData[i]
-            }
+            System.arraycopy(windowedData, 0, fftArray, 0, fftSize)
             fft.realForwardFull(fftArray)
 
             // Вычисление амплитуд
@@ -93,8 +118,12 @@ class AudioUtils {
                 magnitudes[i] = sqrt(real * real + imag * imag)
             }
 
+            val threshold = magnitudes.maxOrNull()?.times(0.1) ?: return null // Порог 10% от максимума
+
             // Поиск пикового значения
-            val peakIndex = magnitudes.indices.maxByOrNull { magnitudes[it] } ?: return null
+            val peakIndex = magnitudes.indices
+                .filter { magnitudes[it] >= threshold }
+                .maxByOrNull { magnitudes[it] } ?: return null
 
             // Вычисление частоты
             val frequency = sampleRate * peakIndex.toDouble() / fftSize
