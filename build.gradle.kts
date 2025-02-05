@@ -27,9 +27,6 @@ dependencies {
     // Apache Commons Math
     implementation("org.apache.commons:commons-math3:3.6.1")
 
-    // EJML
-    implementation("org.ejml:ejml-all:0.41")
-
     // KotlinDL
     implementation("org.jetbrains.kotlinx:kotlin-deeplearning-api:0.4.0")
 }

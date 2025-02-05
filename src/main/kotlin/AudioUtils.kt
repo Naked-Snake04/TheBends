@@ -30,10 +30,10 @@ class AudioUtils {
                 sourceLine.start()
 
                 val chunkFrames = when (selectedItem) {
-                    FFTLibraryEnum.APACHE_COMMONS_MATH -> 8192 // Для этой либы нужно чтобы блок данных был размером степени два
+                    FFTLibraryEnum.APACHE_COMMONS_MATH, FFTLibraryEnum.EJML -> 8192 // Для этой либы нужно чтобы блок данных был размером степени два
                     else -> sampleRate / 5 // Количество фреймов на 1/5 секунды, так стабильнее звук идёт
                 }
-                val chunkSize = chunkFrames * format.frameSize // Размер данных в байтах для 1/5 секунды
+                val chunkSize = chunkFrames * format.frameSize // Размер данных в байтах
                 val buffer = ByteArray(chunkSize)
 
                 while (true) {
