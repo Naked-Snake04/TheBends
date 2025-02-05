@@ -11,10 +11,14 @@ fun main() {
     label.font = Font("Arial", Font.PLAIN, 18)
     frame.add(label, BorderLayout.CENTER)
 
+    val comboBox = JComboBox(FFTLibraryEnum.entries.toTypedArray())
+    frame.add(comboBox, BorderLayout.NORTH)
+
     val fileChooser = JFileChooser();
     val loadButton = JButton("Загрузить файл")
 
     loadButton.addActionListener {
+        var selectedItem = comboBox.selectedItem
         val returnValue = fileChooser.showOpenDialog(frame)
 
         if (returnValue == JFileChooser.APPROVE_OPTION) {
@@ -22,7 +26,7 @@ fun main() {
             label.text = "Обрабатывается: ${file.name}"
             thread {
                 try {
-                    AudioUtils.analyzeAudioFile(file, label)
+                    AudioUtils.analyzeAudioFile(file, label, selectedItem)
                 } catch (e: Exception) {
                     SwingUtilities.invokeLater {
                         label.text = "Ошибка при обработке файла: ${e.message}"
