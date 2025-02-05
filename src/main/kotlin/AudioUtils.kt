@@ -29,8 +29,11 @@ class AudioUtils {
                 sourceLine.open(format)
                 sourceLine.start()
 
-                val chunkFrames = sampleRate / 10 // Количество фреймов на 1/10 секунды
-                val chunkSize = chunkFrames * format.frameSize // Размер данных в байтах для 1/10 секунды
+                val chunkFrames = when (selectedItem) {
+                    FFTLibraryEnum.APACHE_COMMONS_MATH -> 8192 // Для этой либы нужно чтобы блок данных был размером степени два
+                    else -> sampleRate / 5 // Количество фреймов на 1/5 секунды, так стабильнее звук идёт
+                }
+                val chunkSize = chunkFrames * format.frameSize // Размер данных в байтах для 1/5 секунды
                 val buffer = ByteArray(chunkSize)
 
                 while (true) {
