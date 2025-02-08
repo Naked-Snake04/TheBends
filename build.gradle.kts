@@ -26,6 +26,9 @@ dependencies {
 
     // Apache Commons Math
     implementation("org.apache.commons:commons-math3:3.6.1")
+
+    // JFreeChart
+    implementation("org.jfree:jfreechart:1.5.3")
 }
 
 compose.desktop {

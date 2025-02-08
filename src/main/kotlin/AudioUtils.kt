@@ -5,12 +5,22 @@ import javax.swing.SwingUtilities
 import kotlin.math.*
 import org.jtransforms.fft.DoubleFFT_1D
 import org.apache.commons.math3.transform.*
+import org.jfree.chart.ChartFactory
+import org.jfree.chart.ChartPanel
+import org.jfree.chart.JFreeChart
+import org.jfree.data.xy.XYSeries
+import org.jfree.data.xy.XYSeriesCollection
+import java.awt.BorderLayout
+import javax.swing.JFrame
 
 class AudioUtils {
 
     companion object {
-        fun analyzeAudioFile(file: File, label: JLabel, selectedItem: Any?) {
+        private var timeElapsed = 0.0
+        private val frequencySeries = XYSeries("Частота звука")
 
+        fun analyzeAudioFile(file: File, label: JLabel, selectedItem: Any?) {
+            createChart()
             try {
                 val audioInputStream: AudioInputStream = AudioSystem.getAudioInputStream(file)
                 val format = audioInputStream.format
@@ -59,6 +69,8 @@ class AudioUtils {
                     }
                     SwingUtilities.invokeLater {
                         label.text = if (frequency != null) {
+                            frequencySeries.add(timeElapsed, frequency)
+                            timeElapsed += 1.0 // Увеличиваем время на 1 секунду
                             "Обнаружена частота: %.2f Гц.".format(frequency)
                         } else {
                             "Не удалось определить частоту."
@@ -80,6 +92,23 @@ class AudioUtils {
                     label.text = "Ошибка при обработке файла: ${e.message}"
                 }
             }
+        }
+
+        private fun createChart() {
+            // Создаем панель для графика
+            val dataset = XYSeriesCollection(frequencySeries)
+            val chart: JFreeChart = ChartFactory.createXYLineChart(
+                "Частота звука в реальном времени",
+                "Время (с)",
+                "Частота (Гц)",
+                dataset
+            )
+            val chartPanel = ChartPanel(chart)
+            val frame = JFrame("График частоты звука")
+            frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
+            frame.add(chartPanel, BorderLayout.CENTER)
+            frame.setSize(800, 600)
+            frame.isVisible = true
         }
 
         private fun detectFrequencyJTransform(audioData: List<Double>, sampleRate: Int): Double? {
