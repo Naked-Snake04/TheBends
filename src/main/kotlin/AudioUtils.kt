@@ -20,20 +20,36 @@ class AudioUtils {
         private val frequencySeries = XYSeries("Частота звука")
 
         fun analyzeAudioFile(file: File, label: JLabel, selectedItem: Any?) {
-            createChart()
             try {
-                val audioInputStream: AudioInputStream = AudioSystem.getAudioInputStream(file)
-                val format = audioInputStream.format
+                var audioInputStream: AudioInputStream = AudioSystem.getAudioInputStream(file)
+                var format = audioInputStream.format
                 val sampleRate = format.sampleRate.toInt()
-                val dataLineInfo = DataLine.Info(SourceDataLine::class.java, format)
+                var dataLineInfo = DataLine.Info(SourceDataLine::class.java, format)
                 val bytesPerSample = format.frameSize / format.channels
 
                 if (!AudioSystem.isLineSupported(dataLineInfo)) {
-                    SwingUtilities.invokeLater {
-                        label.text = "Линия воспроизведения не поддерживается."
+                    val supportedFormat = AudioFormat(
+                        AudioFormat.Encoding.PCM_SIGNED,
+                        format.sampleRate,
+                        16, // Переводим 32-бит в 16-бит
+                        format.channels,
+                        format.channels * 2, // Размер фрейма для 16-битного звука
+                        format.sampleRate,
+                        false
+                    )
+                    val supportedDataLineInfo = DataLine.Info(SourceDataLine::class.java, supportedFormat)
+                    if (!AudioSystem.isLineSupported(supportedDataLineInfo)) {
+                        SwingUtilities.invokeLater {
+                            label.text = "Система не поддерживает формат файла: $format"
+                        }
+                        return
                     }
-                    return
+                    audioInputStream = AudioSystem.getAudioInputStream(supportedFormat, audioInputStream)
+                    format = supportedFormat
+                    dataLineInfo = supportedDataLineInfo
                 }
+
+                createChart()
 
                 val sourceLine = AudioSystem.getLine(dataLineInfo) as SourceDataLine
                 sourceLine.open(format)
@@ -177,5 +193,12 @@ class AudioUtils {
             val frequency = sampleRate * peakIndex.toDouble() / fftSize
             return if (frequency in 20.0..20000.0) frequency else null
         }
+/*
+        private fun calculateBentFrequency(originalFrequency: Double?, semitone: Double): Double {
+            if (originalFrequency != null) {
+                return originalFrequency * 2.0.pow(semitone / 12.0)
+            }
+            return 0.0
+        }*/
     }
 }
