@@ -11,6 +11,8 @@ import org.jfree.chart.JFreeChart
 import org.jfree.data.xy.XYSeries
 import org.jfree.data.xy.XYSeriesCollection
 import java.awt.BorderLayout
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import javax.swing.JFrame
 
 class AudioUtils {
@@ -18,6 +20,7 @@ class AudioUtils {
     companion object {
         private var timeElapsed = 0.0
         private val frequencySeries = XYSeries("Частота звука")
+        private var firstFrequency = -1.0
 
         fun analyzeAudioFile(file: File, label: JLabel, selectedItem: Any?) {
             try {
@@ -25,7 +28,7 @@ class AudioUtils {
                 var format = audioInputStream.format
                 val sampleRate = format.sampleRate.toInt()
                 var dataLineInfo = DataLine.Info(SourceDataLine::class.java, format)
-                val bytesPerSample = format.frameSize / format.channels
+
 
                 if (!AudioSystem.isLineSupported(dataLineInfo)) {
                     val supportedFormat = AudioFormat(
@@ -44,11 +47,12 @@ class AudioUtils {
                         }
                         return
                     }
+
                     audioInputStream = AudioSystem.getAudioInputStream(supportedFormat, audioInputStream)
                     format = supportedFormat
                     dataLineInfo = supportedDataLineInfo
                 }
-
+                val bytesPerSample = format.frameSize / format.channels
                 createChart()
 
                 val sourceLine = AudioSystem.getLine(dataLineInfo) as SourceDataLine
@@ -75,6 +79,16 @@ class AudioUtils {
                             }
                             shorts.map { it.toDouble() / 32768.0 } // 16-битный звук
                         }
+                        4 -> {
+                            // 32-битный звук (Float)
+                            val floats = FloatArray(bytesRead / 4)
+                            val byteBuffer = ByteBuffer.wrap(buffer).order(ByteOrder.LITTLE_ENDIAN)
+                            for (i in floats.indices) {
+                                floats[i] = byteBuffer.getFloat()
+                            }
+                            // Нужно преобразовать Float в Double для корректной работы
+                            floats.map { it.toDouble() }
+                        }
                         else -> throw UnsupportedOperationException("Неподдерживаемый формат аудио.")
                     }
 
@@ -83,11 +97,19 @@ class AudioUtils {
                         FFTLibraryEnum.APACHE_COMMONS_MATH -> detectFrequencyACM(audioData, sampleRate)
                         else -> throw UnsupportedOperationException("Библиотека пока не подключена")
                     }
+                    if (frequency != null && firstFrequency < 0) {
+                        firstFrequency = frequency
+                    }
                     SwingUtilities.invokeLater {
                         label.text = if (frequency != null) {
+                            val bentFrequency = calculateBentFrequency(firstFrequency, 1.0)
                             frequencySeries.add(timeElapsed, frequency)
                             timeElapsed += 1.0 // Увеличиваем время на 1 секунду
-                            "Обнаружена частота: %.2f Гц.".format(frequency)
+                            if (frequency == bentFrequency) {
+                                "Есть бенд"
+                            } else {
+                                "Нет бенда"
+                            }
                         } else {
                             "Не удалось определить частоту."
                         }
@@ -124,6 +146,7 @@ class AudioUtils {
             frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
             frame.add(chartPanel, BorderLayout.CENTER)
             frame.setSize(800, 600)
+            frame.setLocationRelativeTo(null)
             frame.isVisible = true
         }
 
@@ -193,12 +216,12 @@ class AudioUtils {
             val frequency = sampleRate * peakIndex.toDouble() / fftSize
             return if (frequency in 20.0..20000.0) frequency else null
         }
-/*
+
         private fun calculateBentFrequency(originalFrequency: Double?, semitone: Double): Double {
             if (originalFrequency != null) {
                 return originalFrequency * 2.0.pow(semitone / 12.0)
             }
             return 0.0
-        }*/
+        }
     }
 }
