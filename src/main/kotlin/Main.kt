@@ -18,7 +18,7 @@ fun main() {
     val loadButton = JButton("Загрузить файл")
 
     loadButton.addActionListener {
-        var selectedItem = comboBox.selectedItem
+        val selectedItem = comboBox.selectedItem
         val returnValue = fileChooser.showOpenDialog(frame)
 
         if (returnValue == JFileChooser.APPROVE_OPTION) {

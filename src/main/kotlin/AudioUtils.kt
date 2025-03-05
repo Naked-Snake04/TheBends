@@ -21,14 +21,17 @@ class AudioUtils {
         private var timeElapsed = 0.0
         private val frequencySeries = XYSeries("Частота звука")
         private var firstFrequency = -1.0
+        private var bendValue: Double = 1.0 // TODO: убрать хардкод, сделать вводимым пользователем значением
 
         fun analyzeAudioFile(file: File, label: JLabel, selectedItem: Any?) {
             try {
+                // Сбрасываем старые значения графика
+                frequencySeries.clear()
+                timeElapsed = 0.0                                                                                                                                                                                                   
                 var audioInputStream: AudioInputStream = AudioSystem.getAudioInputStream(file)
                 var format = audioInputStream.format
                 val sampleRate = format.sampleRate.toInt()
                 var dataLineInfo = DataLine.Info(SourceDataLine::class.java, format)
-
 
                 if (!AudioSystem.isLineSupported(dataLineInfo)) {
                     val supportedFormat = AudioFormat(
@@ -97,21 +100,18 @@ class AudioUtils {
                         FFTLibraryEnum.APACHE_COMMONS_MATH -> detectFrequencyACM(audioData, sampleRate)
                         else -> throw UnsupportedOperationException("Библиотека пока не подключена")
                     }
+
                     if (frequency != null && firstFrequency < 0) {
                         firstFrequency = frequency
+
                     }
+                    val expectedFrequency = calculateBentFrequency(firstFrequency, bendValue)
+                    val isBendCorrect = abs(frequency!! - expectedFrequency) < 5.0 // Допустимая погрешность 5 Гц
                     SwingUtilities.invokeLater {
-                        label.text = if (frequency != null) {
-                            val bentFrequency = calculateBentFrequency(firstFrequency, 1.0)
+                        label.text = run {
                             frequencySeries.add(timeElapsed, frequency)
                             timeElapsed += 1.0 // Увеличиваем время на 1 секунду
-                            if (frequency == bentFrequency) {
-                                "Есть бенд"
-                            } else {
-                                "Нет бенда"
-                            }
-                        } else {
-                            "Не удалось определить частоту."
+                            if (isBendCorrect) "Бенд верный!" else "Бенд неверный."
                         }
                     }
                     Thread.sleep(100) // Ждать 1/10 секунды для следующего анализа
