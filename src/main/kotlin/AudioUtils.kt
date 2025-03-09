@@ -21,13 +21,13 @@ class AudioUtils {
         private var timeElapsed = 0.0
         private val frequencySeries = XYSeries("Частота звука")
         private var firstFrequency = -1.0
-        private var bendValue: Double = 1.0 // TODO: убрать хардкод, сделать вводимым пользователем значением
 
-        fun analyzeAudioFile(file: File, label: JLabel, selectedItem: Any?) {
+        fun analyzeAudioFile(file: File, label: JLabel, selectedItem: Any?, semitone: Double) {
             try {
                 // Сбрасываем старые значения графика
                 frequencySeries.clear()
-                timeElapsed = 0.0                                                                                                                                                                                                   
+                timeElapsed = 0.0
+                val bendValue: Double = semitone
                 var audioInputStream: AudioInputStream = AudioSystem.getAudioInputStream(file)
                 var format = audioInputStream.format
                 val sampleRate = format.sampleRate.toInt()
