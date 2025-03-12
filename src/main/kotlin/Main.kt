@@ -6,7 +6,7 @@ import kotlin.concurrent.thread
 fun main() {
     val frame = JFrame("The Bends")
     frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
-    frame.setSize(400,200)
+    frame.setSize(400, 200)
 
     val label = JLabel("Загрузите аудио-файл для анализа.", SwingConstants.CENTER)
     label.font = Font("Arial", Font.PLAIN, 18)
@@ -17,7 +17,9 @@ fun main() {
 
     val fileChooser = JFileChooser();
     val loadButton = JButton("Загрузить файл")
-    val numberFormat = NumberFormat.getInstance()
+    val numberFormat = NumberFormat.getInstance().apply {
+        isGroupingUsed = false
+    }
     val textFieldSemitone = JFormattedTextField(numberFormat)
     textFieldSemitone.columns = 10
     textFieldSemitone.toolTipText = "Введите количество полутонов"
@@ -31,24 +33,29 @@ fun main() {
     loadButton.addActionListener {
         val selectedItem = comboBox.selectedItem
         val returnValue = fileChooser.showOpenDialog(frame)
-        if (textFieldSemitone.value is Number) {
-            val semitoneValue = textFieldSemitone.text.toDouble()
 
-            if (returnValue == JFileChooser.APPROVE_OPTION) {
-                val file = fileChooser.selectedFile
-                label.text = "Обрабатывается: ${file.name}"
-                thread {
-                    try {
-                        AudioUtils.analyzeAudioFile(file, label, selectedItem, semitoneValue)
-                    } catch (e: Exception) {
-                        SwingUtilities.invokeLater {
-                            label.text = "Ошибка при обработке файла: ${e.message}"
-                        }
+        val semitoneValue = when (val value = textFieldSemitone.value) {
+            is Number -> value.toDouble()
+            else -> {
+                SwingUtilities.invokeLater {
+                    label.text = "Ошибка: Введите корректное число для полутонов"
+                }
+                return@addActionListener
+            }
+        }
+
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            val file = fileChooser.selectedFile
+            label.text = "Обрабатывается: ${file.name}"
+            thread {
+                try {
+                    AudioUtils.analyzeAudioFile(file, label, selectedItem, semitoneValue)
+                } catch (e: Exception) {
+                    SwingUtilities.invokeLater {
+                        label.text = "Ошибка при обработке файла: ${e.message}"
                     }
                 }
             }
-        } else {
-            label.text = "Неправильный формат данных. Полутона нужно вводить числами"
         }
     }
 

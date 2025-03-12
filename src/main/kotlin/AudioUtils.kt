@@ -106,12 +106,21 @@ class AudioUtils {
 
                     }
                     val expectedFrequency = calculateBentFrequency(firstFrequency, bendValue)
-                    val isBendCorrect = abs(frequency!! - expectedFrequency) < 5.0 // Допустимая погрешность 5 Гц
+                    val isBendCorrect = abs(frequency!! - expectedFrequency) < 5.0 // Допустимая погрешность пока взял на шару 5 Гц
                     SwingUtilities.invokeLater {
                         label.text = run {
                             frequencySeries.add(timeElapsed, frequency)
-                            timeElapsed += 1.0 // Увеличиваем время на 1 секунду
-                            if (isBendCorrect) "Бенд верный!" else "Бенд неверный."
+                            timeElapsed += 1.0
+
+                            val result = StringBuilder()
+                            // Label не умеет в \n, поэтому для переноса строк используем HTML
+                            result.append("<html>")
+                            result.append("Текущая частота:${"%.2f".format(frequency)} Гц<br>")
+                            result.append("Ожидаемая частота: ${"%.2f".format(expectedFrequency)} Гц<br>")
+                            result.append(if (isBendCorrect) "Бенд верный!" else "Бенд неверный.")
+                            result.append("</html>")
+
+                            result.toString()
                         }
                     }
                     Thread.sleep(100) // Ждать 1/10 секунды для следующего анализа
