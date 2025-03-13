@@ -21,8 +21,9 @@ class AudioUtils {
         private var timeElapsed = 0.0
         private val frequencySeries = XYSeries("Частота звука")
         private var firstFrequency = -1.0
-
-        fun analyzeAudioFile(file: File, label: JLabel, selectedItem: Any?, semitone: Double) {
+        private var firstSecond = 0.0
+        private var isFirstSecond = false
+        fun analyzeAudioFile(file: File, label: JLabel, selectedItem: Any?, semitone: Double, infelicityValue: Double) {
             try {
                 // Сбрасываем старые значения графика
                 frequencySeries.clear()
@@ -103,10 +104,17 @@ class AudioUtils {
 
                     if (frequency != null && firstFrequency < 0) {
                         firstFrequency = frequency
-
                     }
-                    val expectedFrequency = calculateBentFrequency(firstFrequency, bendValue)
-                    val isBendCorrect = abs(frequency!! - expectedFrequency) < 5.0 // Допустимая погрешность пока взял на шару 5 Гц
+
+                    val expectedFrequency = calculateBentFrequency(firstFrequency, bendValue) // ожидаемая частота
+                    // Разницу с первой частотой и ожидаемой сравнивем с допустимой погрешностью
+                    val isBendCorrect = abs(frequency!! - expectedFrequency) < infelicityValue
+
+                    if (isBendCorrect && !isFirstSecond) {
+                        isFirstSecond = true
+                        firstSecond = timeElapsed
+                    }
+
                     SwingUtilities.invokeLater {
                         label.text = run {
                             frequencySeries.add(timeElapsed, frequency)
@@ -117,7 +125,10 @@ class AudioUtils {
                             result.append("<html>")
                             result.append("Текущая частота:${"%.2f".format(frequency)} Гц<br>")
                             result.append("Ожидаемая частота: ${"%.2f".format(expectedFrequency)} Гц<br>")
-                            result.append(if (isBendCorrect) "Бенд верный!" else "Бенд неверный.")
+                            result.append(if (isBendCorrect) "Бенд верный!<br>" else "Бенд неверный.<br>")
+                            if (isFirstSecond) {
+                                result.append("Секунда взятия бенда: ${"%.2f".format(firstSecond)} сек")
+                            }
                             result.append("</html>")
 
                             result.toString()
