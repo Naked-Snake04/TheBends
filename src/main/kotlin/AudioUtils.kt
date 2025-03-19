@@ -101,14 +101,20 @@ class AudioUtils {
                         FFTLibraryEnum.APACHE_COMMONS_MATH -> detectFrequencyACM(audioData, sampleRate)
                         else -> throw UnsupportedOperationException("Библиотека пока не подключена")
                     }
+                    if (frequency == null) {
+                        SwingUtilities.invokeLater {
+                            label.text = "Не удалось определить частоту."
+                        }
+                        continue // Пропускаем итерацию цикла
+                    }
 
-                    if (frequency != null && firstFrequency < 0) {
+                    if (firstFrequency < 0) {
                         firstFrequency = frequency
                     }
 
                     val expectedFrequency = calculateBentFrequency(firstFrequency, bendValue) // ожидаемая частота
                     // Разницу с первой частотой и ожидаемой сравнивем с допустимой погрешностью
-                    val isBendCorrect = abs(frequency!! - expectedFrequency) < infelicityValue
+                    val isBendCorrect = abs(frequency - expectedFrequency) < infelicityValue
 
                     if (isBendCorrect && !isFirstSecond) {
                         isFirstSecond = true
