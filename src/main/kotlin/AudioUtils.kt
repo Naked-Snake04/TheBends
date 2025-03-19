@@ -28,6 +28,7 @@ class AudioUtils {
                 // Сбрасываем старые значения графика
                 frequencySeries.clear()
                 timeElapsed = 0.0
+                isFirstSecond = false
                 val bendValue: Double = semitone
                 var audioInputStream: AudioInputStream = AudioSystem.getAudioInputStream(file)
                 var format = audioInputStream.format
