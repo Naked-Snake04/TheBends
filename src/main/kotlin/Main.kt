@@ -1,4 +1,5 @@
 import java.awt.*
+import java.io.File
 import java.text.NumberFormat
 import javax.swing.*
 import kotlin.concurrent.thread
@@ -15,7 +16,15 @@ fun main() {
     val comboBox = JComboBox(FFTLibraryEnum.entries.toTypedArray())
     frame.add(comboBox, BorderLayout.NORTH)
 
-    val fileChooser = JFileChooser();
+    val fileChooser = JFileChooser().apply {
+        val initialDirectory = File("C:\\temp\\TheBends\\src\\main\\resources")
+        if (initialDirectory.exists()) {
+            currentDirectory = initialDirectory
+        } else {
+            currentDirectory = File(System.getProperty("user.home"))
+        }
+    }
+
     val loadButton = JButton("Загрузить файл")
     val numberFormat = NumberFormat.getInstance().apply {
         isGroupingUsed = false
