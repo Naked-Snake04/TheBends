@@ -17,11 +17,14 @@ fun main() {
     frame.add(comboBox, BorderLayout.NORTH)
 
     val fileChooser = JFileChooser().apply {
-        val initialDirectory = File("C:\\temp\\TheBends\\src\\main\\resources")
-        if (initialDirectory.exists()) {
-            currentDirectory = initialDirectory
-        } else {
-            currentDirectory = File(System.getProperty("user.home"))
+        val initialDirectory1 = File("C:\\temp\\TheBends\\src\\main\\resources")
+        val initialDirectory2 = File("C:\\Users\\Savel\\IdeaProjects\\TheBends\\src\\main\\resources")
+        currentDirectory = if (initialDirectory1.exists()) {
+            initialDirectory1
+        } else if (initialDirectory2.exists()) {
+            initialDirectory2
+        } else{
+            File(System.getProperty("user.home"))
         }
     }
 

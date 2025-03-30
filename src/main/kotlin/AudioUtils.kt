@@ -133,7 +133,10 @@ class AudioUtils {
                             result.append("<html>")
                             result.append("Текущая частота:${"%.2f".format(frequency)} Гц<br>")
                             result.append("Ожидаемая частота: ${"%.2f".format(expectedFrequency)} Гц<br>")
-                            result.append(if (isBendCorrect) "Бенд верный!<br>" else "Бенд неверный.<br>")
+                            if (isBendCorrect) {
+                                result.append("Бенд в сэмпле взят верно!<br>")
+                            }
+//                            result.append(if (isBendCorrect) "Бенд верный!<br>" else "Бенд неверный.<br>")
                             if (isFirstSecond) {
                                 result.append("Секунда взятия бенда: ${"%.2f".format(firstSecond)} сек")
                             }
