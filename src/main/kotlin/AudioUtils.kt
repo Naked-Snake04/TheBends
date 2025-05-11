@@ -116,7 +116,7 @@ class AudioUtils {
 
                     val expectedSemitone = calculateBentFrequency(firstFrequency, frequency) // ожидаемая частота
                     // Разницу с первой частотой и ожидаемой сравнивем с допустимой погрешностью
-                    val accuracy = (expectedSemitone / targetSemitone * 100).toInt()
+                    val accuracy = (expectedSemitone / targetSemitone * 100)
 
                     SwingUtilities.invokeLater {
                         label.text = run {
@@ -127,11 +127,9 @@ class AudioUtils {
                             // Label не умеет в \n, поэтому для переноса строк используем HTML
                             result.append("<html>")
                             result.append("Текущая частота:${"%.2f".format(frequency)} Гц<br>")
-                            result.append("Ожидаемый полутон: ${"%.2f".format(expectedSemitone)}<br>")
-                            result.append("Точность: $accuracy")
-                            if (isFirstSecond) {
-                                result.append("Секунда взятия бенда: ${"%.2f".format(firstSecond)} сек")
-                            }
+                            result.append("Ожидаемый полутон: ${"%.2f".format(targetSemitone)}<br>")
+                            result.append("Вычисленный полутон: ${"%.2f".format(expectedSemitone)}<br>")
+                            result.append("Точность: ${"%.2f".format(accuracy)}")
                             result.append("</html>")
 
                             result.toString()
