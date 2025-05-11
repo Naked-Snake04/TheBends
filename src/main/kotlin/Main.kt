@@ -33,19 +33,13 @@ fun main() {
         isGroupingUsed = false
     }
     val textFieldSemitone = JFormattedTextField(numberFormat) // полутона
-    val textFieldInfelicity = JFormattedTextField(numberFormat) // погрешность
     textFieldSemitone.columns = 5
     textFieldSemitone.toolTipText = "Введите количество полутонов"
     val labelSemitone = JLabel("Кол-во полутонов: ")
-    textFieldInfelicity.columns = 5
-    textFieldInfelicity.toolTipText = "Введите погрешность"
-    val labelInfelicity = JLabel("Погрешность:")
 
     val panel = JPanel()
     panel.add(labelSemitone)
     panel.add(textFieldSemitone)
-    panel.add(labelInfelicity)
-    panel.add(textFieldInfelicity)
     panel.add(loadButton)
 
     loadButton.addActionListener {
@@ -62,22 +56,12 @@ fun main() {
             }
         }
 
-        val infelicityValue = when (val value = textFieldInfelicity.value) {
-            is Number -> value.toDouble()
-            else -> {
-                SwingUtilities.invokeLater {
-                    label.text = "Ошибка: Введите корректную погрешность"
-                }
-                return@addActionListener
-            }
-        }
-
         if (returnValue == JFileChooser.APPROVE_OPTION) {
             val file = fileChooser.selectedFile
             label.text = "Обрабатывается: ${file.name}"
             thread {
                 try {
-                    AudioUtils.analyzeAudioFile(file, label, selectedItem, semitoneValue, infelicityValue)
+                    AudioUtils.analyzeAudioFile(file, label, selectedItem, semitoneValue)
                 } catch (e: Exception) {
                     SwingUtilities.invokeLater {
                         label.text = "Ошибка при обработке файла: ${e.message}"

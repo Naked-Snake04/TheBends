@@ -23,14 +23,14 @@ class AudioUtils {
         private var firstFrequency = -1.0
         private var firstSecond = 0.0
         private var isFirstSecond = false
-        fun analyzeAudioFile(file: File, label: JLabel, selectedItem: Any?, semitone: Double, infelicityValue: Double) {
+        fun analyzeAudioFile(file: File, label: JLabel, selectedItem: Any?, semitone: Double) {
             try {
                 // Сбрасываем старые значения графика
                 frequencySeries.clear()
                 timeElapsed = 0.0
                 isFirstSecond = false
                 firstFrequency = -1.0
-                val bendValue: Double = semitone
+                val targetSemitone: Double = semitone
                 var audioInputStream: AudioInputStream = AudioSystem.getAudioInputStream(file)
                 var format = audioInputStream.format
                 val sampleRate = format.sampleRate.toInt()
@@ -114,14 +114,9 @@ class AudioUtils {
                         firstFrequency = frequency
                     }
 
-                    val expectedFrequency = calculateBentFrequency(firstFrequency, bendValue) // ожидаемая частота
+                    val expectedSemitone = calculateBentFrequency(firstFrequency, frequency) // ожидаемая частота
                     // Разницу с первой частотой и ожидаемой сравнивем с допустимой погрешностью
-                    val isBendCorrect = abs(frequency - expectedFrequency) < infelicityValue
-
-                    if (isBendCorrect && !isFirstSecond) {
-                        isFirstSecond = true
-                        firstSecond = timeElapsed
-                    }
+                    val accuracy = (expectedSemitone / targetSemitone * 100).toInt()
 
                     SwingUtilities.invokeLater {
                         label.text = run {
@@ -132,11 +127,8 @@ class AudioUtils {
                             // Label не умеет в \n, поэтому для переноса строк используем HTML
                             result.append("<html>")
                             result.append("Текущая частота:${"%.2f".format(frequency)} Гц<br>")
-                            result.append("Ожидаемая частота: ${"%.2f".format(expectedFrequency)} Гц<br>")
-                            if (isBendCorrect) {
-                                result.append("Бенд в сэмпле взят верно!<br>")
-                            }
-//                            result.append(if (isBendCorrect) "Бенд верный!<br>" else "Бенд неверный.<br>")
+                            result.append("Ожидаемый полутон: ${"%.2f".format(expectedSemitone)}<br>")
+                            result.append("Точность: $accuracy")
                             if (isFirstSecond) {
                                 result.append("Секунда взятия бенда: ${"%.2f".format(firstSecond)} сек")
                             }
@@ -248,11 +240,8 @@ class AudioUtils {
             return if (frequency in 20.0..20000.0) frequency else null
         }
 
-        private fun calculateBentFrequency(originalFrequency: Double?, semitone: Double): Double {
-            if (originalFrequency != null) {
-                return originalFrequency * 2.0.pow(semitone / 12.0)
-            }
-            return 0.0
+        private fun calculateBentFrequency(originalFrequency: Double?, frequency: Double?): Double {
+            return 12.0 * log2(frequency!! / originalFrequency!!)
         }
     }
 }
