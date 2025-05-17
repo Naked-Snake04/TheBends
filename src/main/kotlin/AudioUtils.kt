@@ -19,7 +19,7 @@ class AudioUtils {
 
     companion object {
         private var timeElapsed = 0.0
-        private val frequencySeries = XYSeries("Частота звука")
+        private val frequencySeries = XYSeries("Полутон")
         private var firstFrequency = -1.0
         private var maxAccuracy = -1.0
         private var isFirstSecond = false
@@ -122,13 +122,12 @@ class AudioUtils {
                     val bendNotFull = abs(expectedSemitone - targetSemitone) // Бенд недотянут на сколько-то полутонов
                     SwingUtilities.invokeLater {
                         label.text = run {
-                            frequencySeries.add(timeElapsed, frequency)
+                            frequencySeries.add(timeElapsed, accuracy)
                             timeElapsed += 1.0
 
                             val result = StringBuilder()
                             // Label не умеет в \n, поэтому для переноса строк используем HTML
                             result.append("<html>")
-                            result.append("Текущая частота:${"%.2f".format(frequency)} Гц<br>")
                             result.append("Ожидаемый полутон: ${"%.2f".format(targetSemitone)}<br>")
                             result.append("Вычисленный полутон: ${"%.2f".format(expectedSemitone)}<br>")
                             result.append("Точность: ${"%.2f".format(accuracy)}<br>")
@@ -162,13 +161,13 @@ class AudioUtils {
             // Создаем панель для графика
             val dataset = XYSeriesCollection(frequencySeries)
             val chart: JFreeChart = ChartFactory.createXYLineChart(
-                "Частота звука в реальном времени",
+                "Точность бенда",
                 "Время (с)",
-                "Частота (Гц)",
+                "Точность (%)",
                 dataset
             )
             val chartPanel = ChartPanel(chart)
-            val frame = JFrame("График частоты звука")
+            val frame = JFrame("График точности бенда")
             frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
             frame.add(chartPanel, BorderLayout.CENTER)
             frame.setSize(800, 600)
