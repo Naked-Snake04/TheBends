@@ -21,7 +21,7 @@ class AudioUtils {
         private var timeElapsed = 0.0
         private val frequencySeries = XYSeries("Частота звука")
         private var firstFrequency = -1.0
-        private var firstSecond = 0.0
+        private var maxAccuracy = -1.0
         private var isFirstSecond = false
         fun analyzeAudioFile(file: File, label: JLabel, selectedItem: Any?, semitone: Double) {
             try {
@@ -30,6 +30,7 @@ class AudioUtils {
                 timeElapsed = 0.0
                 isFirstSecond = false
                 firstFrequency = -1.0
+                maxAccuracy = -1.0
                 val targetSemitone: Double = semitone
                 var audioInputStream: AudioInputStream = AudioSystem.getAudioInputStream(file)
                 var format = audioInputStream.format
@@ -117,7 +118,8 @@ class AudioUtils {
                     val expectedSemitone = calculateBentFrequency(firstFrequency, frequency) // ожидаемая частота
                     // Разницу с первой частотой и ожидаемой сравнивем с допустимой погрешностью
                     val accuracy = (expectedSemitone / targetSemitone * 100)
-
+                    if (accuracy > maxAccuracy) maxAccuracy = accuracy // Максимальный бенд
+                    val bendNotFull = abs(expectedSemitone - targetSemitone) // Бенд недотянут на сколько-то полутонов
                     SwingUtilities.invokeLater {
                         label.text = run {
                             frequencySeries.add(timeElapsed, frequency)
@@ -129,7 +131,10 @@ class AudioUtils {
                             result.append("Текущая частота:${"%.2f".format(frequency)} Гц<br>")
                             result.append("Ожидаемый полутон: ${"%.2f".format(targetSemitone)}<br>")
                             result.append("Вычисленный полутон: ${"%.2f".format(expectedSemitone)}<br>")
-                            result.append("Точность: ${"%.2f".format(accuracy)}")
+                            result.append("Точность: ${"%.2f".format(accuracy)}<br>")
+                            result.append("Максимальная точность: ${"%.2f".format(maxAccuracy)}<br>")
+                            if (maxAccuracy < 100) result.append("Бенд недотянут на ${"%.2f".format(bendNotFull)}<br>")
+                            else if (maxAccuracy > 100) result.append("Бенд перетянут на ${"%.2f".format(bendNotFull)}<br>")
                             result.append("</html>")
 
                             result.toString()
