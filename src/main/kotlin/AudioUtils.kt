@@ -19,14 +19,14 @@ class AudioUtils {
 
     companion object {
         private var timeElapsed = 0.0
-        private val frequencySeries = XYSeries("Полутон")
+        private val accuracySeries = XYSeries("Точность в %")
         private var firstFrequency = -1.0
         private var maxAccuracy = -1.0
         private var isFirstSecond = false
         fun analyzeAudioFile(file: File, label: JLabel, selectedItem: Any?, semitone: Double) {
             try {
                 // Сбрасываем старые значения графика
-                frequencySeries.clear()
+                accuracySeries.clear()
                 timeElapsed = 0.0
                 isFirstSecond = false
                 firstFrequency = -1.0
@@ -115,21 +115,20 @@ class AudioUtils {
                         firstFrequency = frequency
                     }
 
-                    val expectedSemitone = calculateBentFrequency(firstFrequency, frequency) // ожидаемая частота
-                    // Разницу с первой частотой и ожидаемой сравнивем с допустимой погрешностью
-                    val accuracy = (expectedSemitone / targetSemitone * 100)
+                    val resultSemitone = calculateBentFrequency(firstFrequency, frequency) // ожидаемый полутон
+                    val accuracy = (resultSemitone / targetSemitone * 100) // точность - отношение между полутонами
                     if (accuracy > maxAccuracy) maxAccuracy = accuracy // Максимальный бенд
-                    val bendNotFull = abs(expectedSemitone - targetSemitone) // Бенд недотянут на сколько-то полутонов
+                    val bendNotFull = abs(resultSemitone - targetSemitone) // Бенд недотянут на сколько-то полутонов
                     SwingUtilities.invokeLater {
                         label.text = run {
-                            frequencySeries.add(timeElapsed, accuracy)
+                            accuracySeries.add(timeElapsed, accuracy)
                             timeElapsed += 1.0
 
                             val result = StringBuilder()
                             // Label не умеет в \n, поэтому для переноса строк используем HTML
                             result.append("<html>")
                             result.append("Ожидаемый полутон: ${"%.2f".format(targetSemitone)}<br>")
-                            result.append("Вычисленный полутон: ${"%.2f".format(expectedSemitone)}<br>")
+                            result.append("Вычисленный полутон: ${"%.2f".format(resultSemitone)}<br>")
                             result.append("Точность: ${"%.2f".format(accuracy)}<br>")
                             result.append("Максимальная точность: ${"%.2f".format(maxAccuracy)}<br>")
                             if (maxAccuracy < 100) result.append("Бенд недотянут на ${"%.2f".format(bendNotFull)}<br>")
@@ -159,7 +158,7 @@ class AudioUtils {
 
         private fun createChart() {
             // Создаем панель для графика
-            val dataset = XYSeriesCollection(frequencySeries)
+            val dataset = XYSeriesCollection(accuracySeries)
             val chart: JFreeChart = ChartFactory.createXYLineChart(
                 "Точность бенда",
                 "Время (с)",
