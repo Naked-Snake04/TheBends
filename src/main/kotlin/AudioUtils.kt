@@ -179,10 +179,7 @@ class AudioUtils {
             if (fftSize < 2) return null
 
             // Применение окна Хэмминга
-            val windowedData = DoubleArray(fftSize)
-            for (i in windowedData.indices) {
-                windowedData[i] = audioData[i] * (0.54 - 0.46 * cos(2.0 * Math.PI * i / (fftSize - 1)))
-            }
+            val windowedData = calculateHammingWindow(audioData, fftSize)
 
             // Выполнение FFT
             val fft = DoubleFFT_1D(fftSize.toLong())
@@ -198,16 +195,9 @@ class AudioUtils {
                 magnitudes[i] = sqrt(real * real + imag * imag)
             }
 
-            val threshold = magnitudes.maxOrNull()?.times(0.1) ?: return null // Порог 10% от максимума
-
-            // Поиск пикового значения
-            val peakIndex = magnitudes.indices
-                .filter { magnitudes[it] >= threshold }
-                .maxByOrNull { magnitudes[it] } ?: return null
-
             // Вычисление частоты
-            val frequency = sampleRate * peakIndex.toDouble() / fftSize
-            return if (frequency in 20.0..20000.0) frequency else null
+            val frequency = findFrequency(magnitudes, sampleRate, fftSize)
+            return if (frequency!! in 20.0..20000.0) frequency else null
         }
 
         private fun detectFrequencyACM(audioData: List<Double>, sampleRate: Int): Double? {
@@ -215,10 +205,7 @@ class AudioUtils {
             if (fftSize < 2) return null
 
             // Применение окна Хэмминга
-            val windowedData = DoubleArray(fftSize)
-            for (i in windowedData.indices) {
-                windowedData[i] = audioData[i] * (0.54 - 0.46 * cos(2.0 * Math.PI * i / (fftSize - 1)))
-            }
+            val windowedData = calculateHammingWindow(audioData, fftSize)
             // Выполнение FFT с использованием Apache Commons Math
             val transformer = FastFourierTransformer(DftNormalization.STANDARD)
             val transformed = transformer.transform(windowedData, TransformType.FORWARD)
@@ -230,6 +217,24 @@ class AudioUtils {
                 val imag = transformed[i].imaginary
                 magnitudes[i] = sqrt(real * real + imag * imag)
             }
+
+            val frequency = findFrequency(magnitudes, sampleRate, fftSize)
+            return if (frequency!! in 20.0..20000.0) frequency else null
+        }
+
+        private fun calculateBentFrequency(originalFrequency: Double?, frequency: Double?): Double {
+            return 12.0 * log2(frequency!! / originalFrequency!!)
+        }
+
+        private fun calculateHammingWindow(audioData: List<Double>, fftSize: Int) : DoubleArray {
+            val windowedData = DoubleArray(fftSize)
+            for (i in windowedData.indices) {
+                windowedData[i] = audioData[i] * (0.54 - 0.46 * cos(2.0 * Math.PI * i / (fftSize - 1)))
+            }
+            return windowedData
+        }
+
+        private fun findFrequency(magnitudes: DoubleArray, sampleRate: Int, fftSize: Int): Double? {
             // Поиск пикового значения с порогом
             val threshold = magnitudes.maxOrNull()?.times(0.1) ?: return null // Порог 10% от максимума
             val peakIndex = magnitudes.indices
@@ -237,12 +242,8 @@ class AudioUtils {
                 .maxByOrNull { magnitudes[it] } ?: return null
 
             // Вычисление частоты
-            val frequency = sampleRate * peakIndex.toDouble() / fftSize
-            return if (frequency in 20.0..20000.0) frequency else null
+            return sampleRate * peakIndex.toDouble() / fftSize
         }
 
-        private fun calculateBentFrequency(originalFrequency: Double?, frequency: Double?): Double {
-            return 12.0 * log2(frequency!! / originalFrequency!!)
-        }
     }
 }
