@@ -22,6 +22,8 @@ class AudioUtils {
         private val accuracySeries = XYSeries("Точность в %")
         private var firstFrequency = -1.0
         private var maxAccuracy = -1.0
+        private var maxSemitone = -1.0
+        private var bendNotFull = 0.0
         private var isFirstSecond = false
         fun analyzeAudioFile(file: File, label: JLabel, selectedItem: Any?, semitone: Double) {
             try {
@@ -29,8 +31,10 @@ class AudioUtils {
                 accuracySeries.clear()
                 timeElapsed = 0.0
                 isFirstSecond = false
+                bendNotFull = 0.0
                 firstFrequency = -1.0
                 maxAccuracy = -1.0
+                maxSemitone = -1.0
                 val targetSemitone: Double = semitone
                 var audioInputStream: AudioInputStream = AudioSystem.getAudioInputStream(file)
                 var format = audioInputStream.format
@@ -116,9 +120,10 @@ class AudioUtils {
                     }
 
                     val resultSemitone = calculateBentFrequency(firstFrequency, frequency) // ожидаемый полутон
+                    if (resultSemitone > maxSemitone) maxSemitone = resultSemitone
                     val accuracy = (resultSemitone / targetSemitone * 100) // точность - отношение между полутонами
                     if (accuracy > maxAccuracy) maxAccuracy = accuracy // Максимальный бенд
-                    val bendNotFull = abs(resultSemitone - targetSemitone) // Бенд недотянут на сколько-то полутонов
+                    bendNotFull = abs(maxSemitone - targetSemitone) // Бенд недотянут на сколько-то полутонов
                     SwingUtilities.invokeLater {
                         label.text = run {
                             accuracySeries.add(timeElapsed, accuracy)
@@ -130,6 +135,7 @@ class AudioUtils {
                             result.append("Ожидаемый полутон: ${"%.2f".format(targetSemitone)}<br>")
                             result.append("Вычисленный полутон: ${"%.2f".format(resultSemitone)}<br>")
                             result.append("Точность: ${"%.2f".format(accuracy)}<br>")
+                            result.append("Максимальный полутон: ${"%.2f".format(maxSemitone)}<br>")
                             result.append("Максимальная точность: ${"%.2f".format(maxAccuracy)}<br>")
                             if (maxAccuracy < 100) result.append("Бенд недотянут на ${"%.2f".format(bendNotFull)}<br>")
                             else if (maxAccuracy > 100) result.append("Бенд перетянут на ${"%.2f".format(bendNotFull)}<br>")
@@ -140,6 +146,15 @@ class AudioUtils {
                     }
                     Thread.sleep(100) // Ждать 1/10 секунды для следующего анализа
                 }
+
+                val result = StringBuilder()
+                result.append("<html>")
+                result.append("Максимальный полутон: ${"%.2f".format(maxSemitone)}<br>")
+                result.append("Максимальная точность: ${"%.2f".format(maxAccuracy)}<br>")
+                if (maxAccuracy < 100) result.append("Бенд недотянут на ${"%.2f".format(bendNotFull)}<br>")
+                else if (maxAccuracy > 100) result.append("Бенд перетянут на ${"%.2f".format(bendNotFull)}<br>")
+                result.append("</html>")
+                label.text = result.toString()
 
                 sourceLine.drain()
                 sourceLine.close()
