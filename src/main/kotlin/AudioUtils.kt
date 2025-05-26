@@ -250,8 +250,10 @@ class AudioUtils {
         }
 
         private fun findFrequency(magnitudes: DoubleArray, sampleRate: Int, fftSize: Int): Double? {
-            // Поиск пикового значения с порогом
-            val threshold = magnitudes.maxOrNull()?.times(0.1) ?: return null // Порог 10% от максимума
+            // делаем Нойз гейт на основе среднего отклонения
+            val mean = magnitudes.average()
+            val stdDev = sqrt(magnitudes.map { (it - mean).pow(2) }.average())
+            val threshold = mean + stdDev * 2.0
             val peakIndex = magnitudes.indices
                 .filter { magnitudes[it] >= threshold }
                 .maxByOrNull { magnitudes[it] } ?: return null
