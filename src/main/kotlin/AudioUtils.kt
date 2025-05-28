@@ -80,7 +80,7 @@ class AudioUtils {
                 while (true) {
                     val bytesRead = audioInputStream.read(buffer, 0, chunkSize)
                     if (bytesRead == -1) break
-                    sourceLine.write(buffer, 0, buffer.size)
+//                    sourceLine.write(buffer, 0, buffer.size)
                     val audioData = when (bytesPerSample) {
                         1 -> buffer.map { it.toDouble() / 128.0 } // 8-битный звук
                         2 -> {
@@ -102,9 +102,38 @@ class AudioUtils {
                         }
                         else -> throw UnsupportedOperationException("Неподдерживаемый формат аудио.")
                     }
-
+                    val denoisedData = noiseReduction(audioData)
+                    when (bytesPerSample) {
+                        // Преобразование 8-битного звука обратно в байты
+                        1 -> {
+                            denoisedData.forEach { sample ->
+                                buffer[0] = (sample * 128).toInt().toByte()
+                                sourceLine.write(buffer, 0, 1)
+                            }
+                        }
+                        2 -> {
+                            // Преобразование 16-битного звука обратно в байты
+                            val shorts = denoisedData.map { (it * 32768).toInt().toShort() }
+                            for (sample in shorts) {
+                                buffer[0] = (sample.toInt() and 0xFF).toByte()
+                                buffer[1] = (sample.toInt() shr 8).toByte()
+                                sourceLine.write(buffer, 0, 2)
+                            }
+                        }
+                        4 -> {
+                            // Преобразование 32-битного звука обратно в байты
+                            val floats = denoisedData.map { (it).toFloat() }
+                            for (sample in floats) {
+                                val byteBuffer = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN)
+                                byteBuffer.putFloat(sample)
+                                byteBuffer.flip()
+                                byteBuffer.get(buffer)
+                                sourceLine.write(buffer, 0, 4)
+                            }
+                        }
+                    }
                     val frequency = when (selectedItem) {
-                        FFTLibraryEnum.J_TRANSFORMS -> detectFrequencyJTransform(audioData, sampleRate)
+                        FFTLibraryEnum.J_TRANSFORMS -> detectFrequencyJTransform(denoisedData, sampleRate)
                         FFTLibraryEnum.APACHE_COMMONS_MATH -> detectFrequencyACM(audioData, sampleRate)
                         else -> throw UnsupportedOperationException("Библиотека пока не подключена")
                     }
@@ -254,6 +283,7 @@ class AudioUtils {
             val mean = magnitudes.average()
             val stdDev = sqrt(magnitudes.map { (it - mean).pow(2) }.average())
             val threshold = mean + stdDev * 2.0
+
             val peakIndex = magnitudes.indices
                 .filter { magnitudes[it] >= threshold }
                 .maxByOrNull { magnitudes[it] } ?: return null
@@ -262,5 +292,27 @@ class AudioUtils {
             return sampleRate * peakIndex.toDouble() / fftSize
         }
 
+        private fun normalizeAudioData(audioData: List<Double>): List<Double> {
+            val maxAmplitude = audioData.maxOrNull() ?: return audioData
+            return audioData.map { it / maxAmplitude }
+        }
+
+        private fun noiseReduction(audioData: List<Double>, windowSize: Int = 5): List<Double> {
+            // Простой фильтр скользящего среднего для подавления шума
+            val filtered = mutableListOf<Double>()
+            val halfWindow = windowSize / 2
+            for (i in audioData.indices) {
+                var sum = 0.0
+                var count = 0
+                for (j in (i - halfWindow)..(i + halfWindow)) {
+                    if (j in audioData.indices) {
+                        sum += audioData[j]
+                        count++
+                    }
+                }
+                filtered.add(sum / count)
+            }
+            return filtered
+        }
     }
 }
