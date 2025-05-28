@@ -103,35 +103,47 @@ class AudioUtils {
                         else -> throw UnsupportedOperationException("Неподдерживаемый формат аудио.")
                     }
                     val denoisedData = noiseReduction(audioData)
-                    when (bytesPerSample) {
-                        // Преобразование 8-битного звука обратно в байты
+                    val outputBuffer = when (bytesPerSample) {
                         1 -> {
-                            denoisedData.forEach { sample ->
-                                buffer[0] = (sample * 128).toInt().toByte()
-                                sourceLine.write(buffer, 0, 1)
+                            val byteArray = ByteArray(denoisedData.size)
+                            denoisedData.forEachIndexed { i, sample ->
+                                byteArray[i] = (sample * 127).toInt().toByte()
                             }
+                            byteArray
                         }
                         2 -> {
-                            // Преобразование 16-битного звука обратно в байты
-                            val shorts = denoisedData.map { (it * 32768).toInt().toShort() }
-                            for (sample in shorts) {
-                                buffer[0] = (sample.toInt() and 0xFF).toByte()
-                                buffer[1] = (sample.toInt() shr 8).toByte()
-                                sourceLine.write(buffer, 0, 2)
+                            val byteArray = ByteArray(denoisedData.size * 2)
+                            val bb = ByteBuffer.wrap(byteArray).order(ByteOrder.LITTLE_ENDIAN)
+                            denoisedData.forEach { sample ->
+                                bb.putShort((sample * 32767).toInt().toShort())
                             }
+                            byteArray
                         }
                         4 -> {
-                            // Преобразование 32-битного звука обратно в байты
-                            val floats = denoisedData.map { (it).toFloat() }
-                            for (sample in floats) {
-                                val byteBuffer = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN)
-                                byteBuffer.putFloat(sample)
-                                byteBuffer.flip()
-                                byteBuffer.get(buffer)
-                                sourceLine.write(buffer, 0, 4)
+                            val byteArray = ByteArray(denoisedData.size * 4)
+                            val bb = ByteBuffer.wrap(byteArray).order(ByteOrder.LITTLE_ENDIAN)
+                            denoisedData.forEach { sample ->
+                                bb.putFloat(sample.toFloat())
                             }
+                            byteArray
+                        }
+                        else -> throw UnsupportedOperationException("Неподдерживаемый формат аудио.")
+                    }
+
+                    // Запись данных с проверкой кратности frameSize
+                    var offset = 0
+                    while (offset < outputBuffer.size) {
+                        val chunk = min(outputBuffer.size - offset, sourceLine.available())
+                        if (chunk <= 0) continue
+
+                        // Убедимся, что записываем кратное frameSize количество байт
+                        val alignedChunk = chunk - (chunk % format.frameSize)
+                        if (alignedChunk > 0) {
+                            sourceLine.write(outputBuffer, offset, alignedChunk)
+                            offset += alignedChunk
                         }
                     }
+
                     val frequency = when (selectedItem) {
                         FFTLibraryEnum.J_TRANSFORMS -> detectFrequencyJTransform(denoisedData, sampleRate)
                         FFTLibraryEnum.APACHE_COMMONS_MATH -> detectFrequencyACM(audioData, sampleRate)
@@ -298,19 +310,19 @@ class AudioUtils {
         }
 
         private fun noiseReduction(audioData: List<Double>, windowSize: Int = 5): List<Double> {
-            // Простой фильтр скользящего среднего для подавления шума
             val filtered = mutableListOf<Double>()
             val halfWindow = windowSize / 2
             for (i in audioData.indices) {
                 var sum = 0.0
-                var count = 0
+                var weightSum = 0.0
                 for (j in (i - halfWindow)..(i + halfWindow)) {
                     if (j in audioData.indices) {
-                        sum += audioData[j]
-                        count++
+                        val weight = 1.0 / (1.0 + abs(i - j)) // Близкие точки имеют больший вес
+                        sum += audioData[j] * weight
+                        weightSum += weight
                     }
                 }
-                filtered.add(sum / count)
+                filtered.add(sum / weightSum)
             }
             return filtered
         }
