@@ -304,12 +304,7 @@ class AudioUtils {
             return sampleRate * peakIndex.toDouble() / fftSize
         }
 
-        private fun normalizeAudioData(audioData: List<Double>): List<Double> {
-            val maxAmplitude = audioData.maxOrNull() ?: return audioData
-            return audioData.map { it / maxAmplitude }
-        }
-
-        private fun noiseReduction(audioData: List<Double>, windowSize: Int = 5): List<Double> {
+        private fun noiseReduction(audioData: List<Double>, windowSize: Int = 50): List<Double> {
             val filtered = mutableListOf<Double>()
             val halfWindow = windowSize / 2
             for (i in audioData.indices) {
@@ -317,7 +312,7 @@ class AudioUtils {
                 var weightSum = 0.0
                 for (j in (i - halfWindow)..(i + halfWindow)) {
                     if (j in audioData.indices) {
-                        val weight = 1.0 / (1.0 + abs(i - j)) // Близкие точки имеют больший вес
+                        val weight = 1.0 / (1.0 + abs(i - j))
                         sum += audioData[j] * weight
                         weightSum += weight
                     }
