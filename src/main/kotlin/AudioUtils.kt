@@ -25,7 +25,13 @@ class AudioUtils {
         private var maxSemitone = -1.0
         private var bendNotFull = 0.0
         private var isFirstSecond = false
-        fun analyzeAudioFile(file: File, label: JLabel, selectedItem: Any?, semitone: Double) {
+        fun analyzeAudioFile(
+            file: File,
+            label: JLabel,
+            selectedItem: Any?,
+            selectedInstrumentType: Any?,
+            semitone: Double
+        ) {
             try {
                 // Сбрасываем старые значения графика
                 accuracySeries.clear()
@@ -102,7 +108,7 @@ class AudioUtils {
                         }
                         else -> throw UnsupportedOperationException("Неподдерживаемый формат аудио.")
                     }
-                    val denoisedData = noiseReduction(audioData)
+                    val denoisedData = applyFade(noiseReduction(audioData))
                     val outputBuffer = when (bytesPerSample) {
                         1 -> {
                             val byteArray = ByteArray(denoisedData.size)
@@ -145,7 +151,7 @@ class AudioUtils {
                     }
 
                     val frequency = when (selectedItem) {
-                        FFTLibraryEnum.J_TRANSFORMS -> detectFrequencyJTransform(denoisedData, sampleRate)
+                        FFTLibraryEnum.J_TRANSFORMS -> detectFrequencyJTransform(denoisedData, sampleRate, selectedInstrumentType)
                         FFTLibraryEnum.APACHE_COMMONS_MATH -> detectFrequencyACM(audioData, sampleRate)
                         else -> throw UnsupportedOperationException("Библиотека пока не подключена")
                     }
@@ -230,7 +236,7 @@ class AudioUtils {
             frame.isVisible = true
         }
 
-        private fun detectFrequencyJTransform(audioData: List<Double>, sampleRate: Int): Double? {
+        private fun detectFrequencyJTransform(audioData: List<Double>, sampleRate: Int, instrumentType: Any?): Double? {
             val fftSize = audioData.size
             if (fftSize < 2) return null
 
@@ -250,9 +256,9 @@ class AudioUtils {
                 val imag = fftArray[2 * i + 1]
                 magnitudes[i] = sqrt(real * real + imag * imag)
             }
-
+            val cleanedMagnitudes = suppressHarmonics(magnitudes, instrumentType)
             // Вычисление частоты
-            val frequency = findFrequency(magnitudes, sampleRate, fftSize)
+            val frequency = findFrequency(cleanedMagnitudes, sampleRate, fftSize)
             return if (frequency!! in 20.0..20000.0) frequency else null
         }
 
@@ -304,22 +310,52 @@ class AudioUtils {
             return sampleRate * peakIndex.toDouble() / fftSize
         }
 
-        private fun noiseReduction(audioData: List<Double>, windowSize: Int = 50): List<Double> {
-            val filtered = mutableListOf<Double>()
-            val halfWindow = windowSize / 2
-            for (i in audioData.indices) {
-                var sum = 0.0
-                var weightSum = 0.0
-                for (j in (i - halfWindow)..(i + halfWindow)) {
-                    if (j in audioData.indices) {
-                        val weight = 1.0 / (1.0 + abs(i - j))
-                        sum += audioData[j] * weight
-                        weightSum += weight
-                    }
-                }
-                filtered.add(sum / weightSum)
+        private fun noiseReduction(audioData: List<Double>, alpha: Double = 0.05): List<Double> {
+            if (audioData.isEmpty()) return emptyList()
+            val filtered = MutableList(audioData.size) { 0.0 }
+            filtered[0] = audioData[0]
+
+            for (i in 1 until audioData.size) {
+                filtered[i] = alpha * audioData[i] + (1 - alpha) * filtered[i-1]
             }
             return filtered
+        }
+
+        private fun applyFade(data: List<Double>, fadeLength: Int = 128): List<Double>{
+            val result = data.toMutableList()
+
+            for (i in 0 until fadeLength.coerceAtMost(data.size / 2)) {
+                val fadeInGain = i.toDouble() / fadeLength
+                val fadeOutGain = (fadeLength - i).toDouble() / fadeLength
+                result[i] *= fadeInGain
+                result[result.size - i - 1] *= fadeOutGain
+            }
+            return result
+        }
+
+        private fun suppressHarmonics(magnitudes: DoubleArray, type: Any?) : DoubleArray {
+            val result = magnitudes.copyOf()
+            val (minFreq, maxFreq, harmonicWeights) = when (type) {
+                InstrumentType.BASS -> Triple(40, 500, listOf(0.5, 0.3, 0.15, 0.1))
+                InstrumentType.ACOUSTIC -> Triple(80, 1200, listOf(0.6, 0.4, 0.25, 0.15))
+                /**
+                 * TODO: Электрогитару косоёбит. Надо исправить.
+                 */
+                InstrumentType.ELECTRIC -> Triple(70, 2000, listOf(0,7, 0.5, 0.3, 0.2))
+                else -> Triple(0, 0, listOf(0, 0, 0, 0))
+            }
+            for (i in result.indices) {
+                val frequency = i.toDouble()
+                if(frequency < minFreq || frequency > maxFreq) continue
+
+                for ((harmonicIndex, weight) in harmonicWeights.withIndex()) {
+                    val hi = i * (harmonicIndex + 2)
+                    if (hi < result.size) {
+                        result[i] = result[i] + result[hi] * weight.toDouble()
+                    }
+                }
+            }
+            return result
         }
     }
 }

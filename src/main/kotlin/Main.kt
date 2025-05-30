@@ -13,8 +13,15 @@ fun main() {
     label.font = Font("Arial", Font.PLAIN, 18)
     frame.add(label, BorderLayout.CENTER)
 
+    val panelNorth = JPanel()
+
     val comboBox = JComboBox(FFTLibraryEnum.entries.toTypedArray())
-    frame.add(comboBox, BorderLayout.NORTH)
+    val instrumentComboBox = JComboBox(InstrumentType.entries.toTypedArray())
+
+    panelNorth.add(comboBox)
+    panelNorth.add(instrumentComboBox)
+
+    frame.add(panelNorth, BorderLayout.NORTH)
 
     val fileChooser = JFileChooser().apply {
         val initialDirectory1 = File("C:\\temp\\TheBends\\src\\main\\resources")
@@ -44,6 +51,7 @@ fun main() {
 
     loadButton.addActionListener {
         val selectedItem = comboBox.selectedItem
+        val selectedInstrumentType = instrumentComboBox.selectedItem
         val returnValue = fileChooser.showOpenDialog(frame)
 
         val semitoneValue = when (val value = textFieldSemitone.value) {
@@ -61,7 +69,7 @@ fun main() {
             label.text = "Обрабатывается: ${file.name}"
             thread {
                 try {
-                    AudioUtils.analyzeAudioFile(file, label, selectedItem, semitoneValue)
+                    AudioUtils.analyzeAudioFile(file, label, selectedItem, selectedInstrumentType, semitoneValue)
                 } catch (e: Exception) {
                     SwingUtilities.invokeLater {
                         label.text = "Ошибка при обработке файла: ${e.message}"
