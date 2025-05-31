@@ -256,7 +256,7 @@ class AudioUtils {
                 val imag = fftArray[2 * i + 1]
                 magnitudes[i] = sqrt(real * real + imag * imag)
             }
-            val cleanedMagnitudes = suppressHarmonics(magnitudes, instrumentType)
+            val cleanedMagnitudes = suppressHarmonics(magnitudes, instrumentType, sampleRate, fftSize)
             // Вычисление частоты
             val frequency = findFrequency(cleanedMagnitudes, sampleRate, fftSize)
             return if (frequency!! in 20.0..20000.0) frequency else null
@@ -333,25 +333,23 @@ class AudioUtils {
             return result
         }
 
-        private fun suppressHarmonics(magnitudes: DoubleArray, type: Any?) : DoubleArray {
+        private fun suppressHarmonics(magnitudes: DoubleArray, type: Any?, sampleRate: Int, fftSize: Int) : DoubleArray {
             val result = magnitudes.copyOf()
             val (minFreq, maxFreq, harmonicWeights) = when (type) {
                 InstrumentType.BASS -> Triple(40, 500, listOf(0.5, 0.3, 0.15, 0.1))
                 InstrumentType.ACOUSTIC -> Triple(80, 1200, listOf(0.6, 0.4, 0.25, 0.15))
-                /**
-                 * TODO: Электрогитару косоёбит. Надо исправить.
-                 */
                 InstrumentType.ELECTRIC -> Triple(70, 2000, listOf(0.7, 0.5, 0.3, 0.2))
                 else -> Triple(0, 0, listOf(0, 0, 0, 0))
             }
             for (i in result.indices) {
-                val frequency = i.toDouble()
+                val frequency = i * sampleRate.toDouble() / fftSize
                 if(frequency < minFreq || frequency > maxFreq) continue
 
                 for ((harmonicIndex, weight) in harmonicWeights.withIndex()) {
-                    val hi = i * (harmonicIndex + 2)
-                    if (hi < result.size) {
-                        result[i] = result[i] + result[hi] * weight.toDouble()
+                    val harmonicFreq = frequency * (harmonicIndex + 2)
+                    val harmonicBin = (harmonicFreq * fftSize / sampleRate).toInt()
+                    if (harmonicBin in result.indices) {
+                        result[i] += result[harmonicBin] * weight.toDouble()
                     }
                 }
             }
