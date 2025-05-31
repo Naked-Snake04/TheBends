@@ -310,7 +310,7 @@ class AudioUtils {
             return sampleRate * peakIndex.toDouble() / fftSize
         }
 
-        private fun noiseReduction(audioData: List<Double>, alpha: Double = 0.05): List<Double> {
+        private fun noiseReduction(audioData: List<Double>, alpha: Double = 0.03): List<Double> {
             if (audioData.isEmpty()) return emptyList()
             val filtered = MutableList(audioData.size) { 0.0 }
             filtered[0] = audioData[0]
