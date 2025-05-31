@@ -341,7 +341,7 @@ class AudioUtils {
                 /**
                  * TODO: Электрогитару косоёбит. Надо исправить.
                  */
-                InstrumentType.ELECTRIC -> Triple(70, 2000, listOf(0,7, 0.5, 0.3, 0.2))
+                InstrumentType.ELECTRIC -> Triple(70, 2000, listOf(0.7, 0.5, 0.3, 0.2))
                 else -> Triple(0, 0, listOf(0, 0, 0, 0))
             }
             for (i in result.indices) {
