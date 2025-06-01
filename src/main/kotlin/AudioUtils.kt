@@ -90,20 +90,20 @@ class AudioUtils {
                     val audioData = when (bytesPerSample) {
                         1 -> buffer.map { it.toDouble() / 128.0 } // 8-битный звук
                         2 -> {
-                            val shorts = ShortArray(bytesRead /2)
+                            val byteBuffer = ByteBuffer.wrap(buffer).order(ByteOrder.LITTLE_ENDIAN)
+                            val shorts = ShortArray(bytesRead / 2)
                             for (i in shorts.indices) {
-                                shorts[i] = ((buffer[2 * i + 1].toInt() shl 8) or (buffer[2 * i].toInt() and 0xFF)).toShort()
+                                shorts[i] = byteBuffer.short
                             }
-                            shorts.map { it.toDouble() / 32768.0 } // 16-битный звук
+                            shorts.map { it.toDouble() / 32768.0 }
                         }
                         4 -> {
                             // 32-битный звук (Float)
-                            val floats = FloatArray(bytesRead / 4)
                             val byteBuffer = ByteBuffer.wrap(buffer).order(ByteOrder.LITTLE_ENDIAN)
+                            val floats = FloatArray(bytesRead / 4)
                             for (i in floats.indices) {
-                                floats[i] = byteBuffer.getFloat()
+                                floats[i] = byteBuffer.float
                             }
-                            // Нужно преобразовать Float в Double для корректной работы
                             floats.map { it.toDouble() }
                         }
                         else -> throw UnsupportedOperationException("Неподдерживаемый формат аудио.")
