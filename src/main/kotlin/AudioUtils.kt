@@ -108,7 +108,7 @@ class AudioUtils {
                         }
                         else -> throw UnsupportedOperationException("Неподдерживаемый формат аудио.")
                     }
-                    val denoisedData = applyFade(noiseReduction(audioData))
+                    val denoisedData = noiseReduction(audioData)
                     val outputBuffer = when (bytesPerSample) {
                         1 -> {
                             val byteArray = ByteArray(denoisedData.size)
@@ -319,18 +319,6 @@ class AudioUtils {
                 filtered[i] = alpha * audioData[i] + (1 - alpha) * filtered[i-1]
             }
             return filtered
-        }
-
-        private fun applyFade(data: List<Double>, fadeLength: Int = 128): List<Double>{
-            val result = data.toMutableList()
-
-            for (i in 0 until fadeLength.coerceAtMost(data.size / 2)) {
-                val fadeInGain = i.toDouble() / fadeLength
-                val fadeOutGain = (fadeLength - i).toDouble() / fadeLength
-                result[i] *= fadeInGain
-                result[result.size - i - 1] *= fadeOutGain
-            }
-            return result
         }
 
         private fun suppressHarmonics(magnitudes: DoubleArray, type: Any?, sampleRate: Int, fftSize: Int) : DoubleArray {
