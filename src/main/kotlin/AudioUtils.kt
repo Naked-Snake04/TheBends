@@ -89,7 +89,7 @@ class AudioUtils {
 //                    sourceLine.write(buffer, 0, buffer.size)
                     val audioData = when (bytesPerSample) {
                         1 -> buffer.map { it.toDouble() / 128.0 } // 8-битный звук
-                        2 -> {
+                        2 -> { // 16-битный звук
                             val byteBuffer = ByteBuffer.wrap(buffer).order(ByteOrder.LITTLE_ENDIAN)
                             val shorts = ShortArray(bytesRead / 2)
                             for (i in shorts.indices) {
