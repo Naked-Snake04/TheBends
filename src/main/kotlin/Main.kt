@@ -16,7 +16,7 @@ fun main() {
     val panelNorth = JPanel()
 
     val comboBox = JComboBox(FFTLibraryEnum.entries.toTypedArray())
-    val instrumentComboBox = JComboBox(InstrumentType.entries.toTypedArray())
+    val instrumentComboBox = JComboBox(InstrumentTypeEnum.entries.toTypedArray())
 
     panelNorth.add(comboBox)
     panelNorth.add(instrumentComboBox)

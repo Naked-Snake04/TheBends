@@ -1,4 +1,4 @@
-enum class InstrumentType {
+enum class InstrumentTypeEnum {
     ACOUSTIC, BASS, ELECTRIC;
 
     override fun toString(): String {
