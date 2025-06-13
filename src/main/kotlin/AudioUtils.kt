@@ -326,7 +326,7 @@ class AudioUtils {
             val (minFreq, maxFreq, harmonicWeights) = when (type) {
                 InstrumentTypeEnum.BASS -> Triple(40, 500, listOf(0.5, 0.3, 0.15, 0.1))
                 InstrumentTypeEnum.ACOUSTIC -> Triple(80, 1200, listOf(0.6, 0.4, 0.25, 0.15))
-                InstrumentTypeEnum.ELECTRIC -> Triple(70, 2000, listOf(0.7, 0.5, 0.3, 0.2))
+                InstrumentTypeEnum.ELECTRIC -> Triple(70, 2000, listOf(0.3, 0.5, 0.5, 0.3))
                 else -> Triple(0, 0, listOf(0, 0, 0, 0))
             }
             for (i in result.indices) {
