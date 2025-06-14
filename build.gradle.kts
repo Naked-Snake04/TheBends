@@ -36,9 +36,19 @@ compose.desktop {
         mainClass = "MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Exe)
             packageName = "TheBends"
             packageVersion = "1.0.0"
+
+            windows {
+                menu = true
+                console = false
+                upgradeUuid = "f25d7c2c-7c11-4db8-b1ae-8f8608e1a2a5"
+            }
+
+            buildTypes.release.proguard {
+                isEnabled.set(false)
+            }
         }
     }
 }
@@ -47,8 +57,8 @@ tasks.jar {
     manifest {
         attributes["Main-Class"] = "MainKt"
     }
-    configurations["compileClasspath"].forEach { file: File ->
-        from(zipTree(file.absoluteFile))
-    }
+    from({
+        configurations["compileClasspath"].map { zipTree(it) }
+    })
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
