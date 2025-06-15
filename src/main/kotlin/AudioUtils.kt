@@ -152,7 +152,7 @@ class AudioUtils {
 
                     val frequency = when (selectedItem) {
                         FFTLibraryEnum.J_TRANSFORMS -> detectFrequencyJTransform(denoisedData, sampleRate, selectedInstrumentType)
-                        FFTLibraryEnum.APACHE_COMMONS_MATH -> detectFrequencyACM(audioData, sampleRate)
+                        FFTLibraryEnum.APACHE_COMMONS_MATH -> detectFrequencyACM(audioData, sampleRate, selectedInstrumentType)
                         else -> throw UnsupportedOperationException("Библиотека пока не подключена")
                     }
                     if (frequency == null) {
@@ -262,7 +262,7 @@ class AudioUtils {
             return if (frequency!! in 20.0..20000.0) frequency else null
         }
 
-        private fun detectFrequencyACM(audioData: List<Double>, sampleRate: Int): Double? {
+        private fun detectFrequencyACM(audioData: List<Double>, sampleRate: Int, instrumentType: Any?): Double? {
             val fftSize = audioData.size
             if (fftSize < 2) return null
 
@@ -280,7 +280,8 @@ class AudioUtils {
                 magnitudes[i] = sqrt(real * real + imag * imag)
             }
 
-            val frequency = findFrequency(magnitudes, sampleRate, fftSize)
+            val cleanedMagnitudes = suppressHarmonics(magnitudes, instrumentType, sampleRate, fftSize)
+            val frequency = findFrequency(cleanedMagnitudes, sampleRate, fftSize)
             return if (frequency!! in 20.0..20000.0) frequency else null
         }
 
